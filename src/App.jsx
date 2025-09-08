@@ -1,9 +1,7 @@
-import { useState } from 'react';
-
 import 'bulma/css/bulma.css';
 import './App.scss';
-
-import { GoodList } from './components/GoodList';
+import { useState } from 'react';
+import cn from 'classnames';
 
 export const goodsFromServer = [
   'Dumplings',
@@ -18,51 +16,29 @@ export const goodsFromServer = [
   'Garlic',
 ];
 
-const SORT_FIELD_ASC = 'asc';
-const SORT_FIELD_LEN = 'length';
-
-function getPreparedGood(goods, sortField) {
-  const preparedGoods = [...goods];
-
-  if (sortField) {
-    preparedGoods.sort((good1, good2) => {
-      switch (sortField) {
-        case SORT_FIELD_ASC:
-          return good1.localeCompare(good2);
-        case SORT_FIELD_LEN:
-          return good1.length - good2.length;
-        default:
-          return 0;
-      }
-    });
+function sortByQuery(good1, good2, query) {
+  switch (query) {
+    case 'alphabetically':
+      return good1.localeCompare(good2);
+    case 'length':
+      return good1.length - good2.length;
+    default:
+      return 0;
   }
-
-  return preparedGoods;
 }
 
 export const App = () => {
-  const [sortField, setSortField] = useState('');
-  const [reversed, setReversed] = useState(false);
+  const [query, setQuery] = useState('');
+  const [isReverse, setIsReverse] = useState(false);
+  let visibleGoods = goodsFromServer;
 
-  let visibleGoods = getPreparedGood(goodsFromServer, sortField);
+  if (query !== '') {
+    visibleGoods = visibleGoods.toSorted((good1, good2) =>
+      // eslint-disable-next-line prettier/prettier
+      sortByQuery(good1, good2, query));
+  }
 
-  const resetGoods = () => {
-    visibleGoods = getPreparedGood(goodsFromServer, '');
-    setSortField('');
-    setReversed(false);
-  };
-
-  const appliedSortBtn = field => {
-    return sortField !== field ? 'is-light' : '';
-  };
-
-  const appliedReverseBtn = () => {
-    return reversed ? '' : 'is-light';
-  };
-
-  const isModified = sortField !== '' || reversed;
-
-  if (reversed) {
+  if (isReverse) {
     visibleGoods = visibleGoods.toReversed();
   }
 
@@ -70,32 +46,39 @@ export const App = () => {
     <div className="section content">
       <div className="buttons">
         <button
+          onClick={() => setQuery('alphabetically')}
           type="button"
-          className={`button is-info ${appliedSortBtn(SORT_FIELD_ASC)}`}
-          onClick={() => setSortField(SORT_FIELD_ASC)}
+          className={cn('button', 'is-info', {
+            'is-light': query !== 'alphabetically',
+          })}
         >
           Sort alphabetically
         </button>
 
         <button
-          onClick={() => setSortField(SORT_FIELD_LEN)}
+          onClick={() => setQuery('length')}
           type="button"
-          className={`button is-success ${appliedSortBtn(SORT_FIELD_LEN)}`}
+          className={cn('button', 'is-success', {
+            'is-light': query !== 'length',
+          })}
         >
           Sort by length
         </button>
 
         <button
-          onClick={() => setReversed(!reversed)}
+          onClick={() => setIsReverse(prev => !prev)}
           type="button"
-          className={`button is-warning ${appliedReverseBtn()}`}
+          className={cn('button', 'is-warning', { 'is-light': !isReverse })}
         >
           Reverse
         </button>
 
-        {isModified && (
+        {(query !== '' || isReverse === true) && (
           <button
-            onClick={resetGoods}
+            onClick={() => {
+              setIsReverse(false);
+              setQuery('');
+            }}
             type="button"
             className="button is-danger is-light"
           >
@@ -104,7 +87,13 @@ export const App = () => {
         )}
       </div>
 
-      <GoodList goods={visibleGoods} />
+      <ul>
+        {visibleGoods.map(good => (
+          <li key={good} data-cy="Good">
+            {good}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
