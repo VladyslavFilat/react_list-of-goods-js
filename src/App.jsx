@@ -1,7 +1,10 @@
 import 'bulma/css/bulma.css';
 import './App.scss';
+import classNames from 'classnames';
 import { useState } from 'react';
-import cn from 'classnames';
+
+const SORT_FIELD_ALPHABET = 'alphabet';
+const SORT_FIELD_LENGTH = 'length';
 
 export const goodsFromServer = [
   'Dumplings',
@@ -16,71 +19,88 @@ export const goodsFromServer = [
   'Garlic',
 ];
 
-function sortByQuery(good1, good2, query) {
-  switch (query) {
-    case 'alphabetically':
-      return good1.localeCompare(good2);
-    case 'length':
-      return good1.length - good2.length;
-    default:
-      return 0;
-  }
-}
-
 export const App = () => {
-  const [query, setQuery] = useState('');
-  const [isReverse, setIsReverse] = useState(false);
-  let visibleGoods = goodsFromServer;
+  const [visibleGoods, setVisibleGoods] = useState(goodsFromServer);
+  const [sortedField, setSortedField] = useState('');
+  const [isReversed, setIsReversed] = useState(false);
 
-  if (query !== '') {
-    visibleGoods = visibleGoods.toSorted((good1, good2) =>
-      // eslint-disable-next-line prettier/prettier
-      sortByQuery(good1, good2, query));
-  }
+  const resetGoods = () => {
+    setVisibleGoods(goodsFromServer);
+    setSortedField('');
+    setIsReversed(false);
+  };
 
-  if (isReverse) {
-    visibleGoods = visibleGoods.toReversed();
-  }
+  const sortAlphabetically = () => {
+    const sorted = [...goodsFromServer].sort((a, b) => a.localeCompare(b));
+
+    if (isReversed) {
+      sorted.reverse();
+    }
+
+    setVisibleGoods(sorted);
+    setSortedField(SORT_FIELD_ALPHABET);
+  };
+
+  const sortByLength = () => {
+    const sorted = [...goodsFromServer].sort((a, b) => a.length - b.length);
+
+    if (isReversed) {
+      sorted.reverse();
+    }
+
+    setVisibleGoods(sorted);
+    setSortedField(SORT_FIELD_LENGTH);
+  };
+
+  const reverseGoods = () => {
+    setVisibleGoods([...visibleGoods].reverse());
+    setIsReversed(prev => !prev);
+  };
+
+  const isResetVisible = visibleGoods.join(',') !== goodsFromServer.join(',');
+
+  const isAlphActive = sortedField === SORT_FIELD_ALPHABET;
+  const isLengthActive = sortedField === SORT_FIELD_LENGTH;
+  const isReverseActive = isReversed;
 
   return (
     <div className="section content">
       <div className="buttons">
         <button
-          onClick={() => setQuery('alphabetically')}
           type="button"
-          className={cn('button', 'is-info', {
-            'is-light': query !== 'alphabetically',
+          className={classNames('button is-info', {
+            'is-light': !isAlphActive,
           })}
+          onClick={sortAlphabetically}
         >
           Sort alphabetically
         </button>
 
         <button
-          onClick={() => setQuery('length')}
           type="button"
-          className={cn('button', 'is-success', {
-            'is-light': query !== 'length',
+          className={classNames('button is-success', {
+            'is-light': !isLengthActive,
           })}
+          onClick={sortByLength}
         >
           Sort by length
         </button>
 
         <button
-          onClick={() => setIsReverse(prev => !prev)}
           type="button"
-          className={cn('button', 'is-warning', { 'is-light': !isReverse })}
+          className={classNames('button is-warning', {
+            'is-light': !isReverseActive,
+          })}
+          onClick={reverseGoods}
         >
           Reverse
         </button>
 
-        {(query !== '' || isReverse === true) && (
+        {isResetVisible && (
           <button
-            onClick={() => {
-              setIsReverse(false);
-              setQuery('');
-            }}
             type="button"
             className="button is-danger is-light"
+            onClick={resetGoods}
           >
             Reset
           </button>
@@ -88,11 +108,13 @@ export const App = () => {
       </div>
 
       <ul>
-        {visibleGoods.map(good => (
-          <li key={good} data-cy="Good">
-            {good}
-          </li>
-        ))}
+        {visibleGoods.map(good => {
+          return (
+            <li data-cy="Good" key={good}>
+              {good}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
